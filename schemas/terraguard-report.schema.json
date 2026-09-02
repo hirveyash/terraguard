@@ -1,0 +1,122 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://raw.githubusercontent.com/hirveyash/terraguard/main/schemas/terraguard-report.schema.json",
+  "title": "TerraGuard Scan Report",
+  "description": "Schema for TerraGuard IaC security scan reports (JSON format). Version 1.0.0.",
+  "type": "object",
+  "required": ["version", "scanner", "scan", "summary", "findings"],
+  "additionalProperties": false,
+  "properties": {
+    "$schema": { "type": "string", "format": "uri" },
+    "version": { "type": "string", "const": "1.0.0" },
+    "scanner": {
+      "type": "object",
+      "required": ["name", "version"],
+      "additionalProperties": false,
+      "properties": {
+        "name": { "type": "string", "const": "TerraGuard" },
+        "version": { "type": "string" },
+        "homepage": { "type": "string", "format": "uri" }
+      }
+    },
+    "scan": {
+      "type": "object",
+      "required": ["scannedAt", "durationMs", "targetPath", "workingDirectory", "arguments"],
+      "additionalProperties": false,
+      "properties": {
+        "scannedAt": { "type": "string", "format": "date-time" },
+        "durationMs": { "type": "integer", "minimum": 0 },
+        "targetPath": { "type": "string" },
+        "workingDirectory": { "type": "string" },
+        "arguments": { "type": "array", "items": { "type": "string" } },
+        "failOn": {
+          "type": "array",
+          "items": { "type": "string", "enum": ["CRITICAL", "HIGH", "MEDIUM", "LOW", "INFO"] }
+        }
+      }
+    },
+    "summary": {
+      "type": "object",
+      "required": ["filesScanned", "resourcesScanned", "totalRulesChecked", "riskScore", "findingsCount", "findingsBySeverity"],
+      "additionalProperties": false,
+      "properties": {
+        "filesScanned": { "type": "integer", "minimum": 0 },
+        "resourcesScanned": { "type": "integer", "minimum": 0 },
+        "totalRulesChecked": { "type": "integer", "minimum": 0 },
+        "riskScore": { "type": "integer", "minimum": 0, "maximum": 100 },
+        "findingsCount": { "type": "integer", "minimum": 0 },
+        "findingsBySeverity": {
+          "type": "object",
+          "required": ["CRITICAL", "HIGH", "MEDIUM", "LOW", "INFO"],
+          "additionalProperties": false,
+          "properties": {
+            "CRITICAL": { "type": "integer", "minimum": 0 },
+            "HIGH": { "type": "integer", "minimum": 0 },
+            "MEDIUM": { "type": "integer", "minimum": 0 },
+            "LOW": { "type": "integer", "minimum": 0 },
+            "INFO": { "type": "integer", "minimum": 0 }
+          }
+        }
+      }
+    },
+    "findings": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["ruleId", "severity", "title", "resource", "resourceType", "file", "line", "description", "risk", "remediation", "frameworks", "references"],
+        "additionalProperties": false,
+        "properties": {
+          "ruleId": { "type": "string", "pattern": "^TG-[A-Z]+-\\d{3}$" },
+          "severity": { "type": "string", "enum": ["CRITICAL", "HIGH", "MEDIUM", "LOW", "INFO"] },
+          "title": { "type": "string", "minLength": 1 },
+          "resource": { "type": "string" },
+          "resourceType": { "type": "string" },
+          "file": { "type": "string" },
+          "line": { "type": "integer", "minimum": 1 },
+          "description": { "type": "string" },
+          "risk": { "type": "string" },
+          "remediation": {
+            "type": "object",
+            "required": ["explanation", "impact", "remediation", "secureExample"],
+            "additionalProperties": false,
+            "properties": {
+              "explanation": { "type": "string" },
+              "impact": { "type": "string" },
+              "remediation": { "type": "string" },
+              "secureExample": { "type": "string" },
+              "autoFix": {
+                "type": "object",
+                "required": ["description", "diff", "assumptions", "requiresConfirmation"],
+                "additionalProperties": false,
+                "properties": {
+                  "description": { "type": "string" },
+                  "diff": { "type": "string" },
+                  "assumptions": { "type": "array", "items": { "type": "string" } },
+                  "requiresConfirmation": { "type": "boolean", "const": true }
+                }
+              }
+            }
+          },
+          "frameworks": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": ["framework", "version", "control", "reason"],
+              "additionalProperties": false,
+              "properties": {
+                "framework": { "type": "string" },
+                "version": { "type": "string" },
+                "control": { "type": "string" },
+                "reason": { "type": "string" }
+              }
+            }
+          },
+          "references": {
+            "type": "array",
+            "items": { "type": "string" }
+          }
+        }
+      }
+    }
+  }
+}

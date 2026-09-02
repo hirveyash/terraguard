@@ -49,16 +49,14 @@ export function scanTerraformCode(code: unknown, fileName: string = 'main.tf'): 
       });
     });
 
-    // Sort findings by severity (CRITICAL first)
     const sortedFindings = sortFindingsBySeverity(findings);
-
-    // Calculate deterministic risk score
     const riskScore = calculateRiskScore(sortedFindings);
 
     return {
       findings: sortedFindings,
       riskScore,
       totalRulesChecked: allRules.length,
+      resourcesScanned: parseResult.resources.length, // NEW
     };
   } catch (error) {
     return { error: sanitizeError(error) };

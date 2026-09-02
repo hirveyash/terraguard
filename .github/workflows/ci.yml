@@ -1,0 +1,106 @@
+# .github/workflows/ci.yml
+name: TerraGuard CI Pipeline
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+    branches: [main, master]
+
+jobs:
+  # 1. Lint
+  lint:
+    name: Lint Code
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+      - name: Install Dependencies
+        run: npm ci
+      - name: Run ESLint
+        run: npm run lint
+
+  # 2. Unit & Security Tests
+  test:
+    name: Unit & Security Tests
+    runs-on: ubuntu-latest
+    needs: lint
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+      - name: Install Dependencies
+        run: npm ci
+      - name: Run Vitest
+        run: npm run test:run
+
+  # 3. Dependency Scan
+  dependency-scan:
+    name: Dependency Vulnerability Scan
+    runs-on: ubuntu-latest
+    needs: test
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+      - name: Install Dependencies
+        run: npm ci
+      - name: Run npm audit
+        run: npm audit --audit-level=high
+
+  # 4. TerraGuard IaC Scan & Policy Evaluation
+  terraguard-scan:
+    name: TerraGuard IaC Security Scan
+    runs-on: ubuntu-latest
+    needs: dependency-scan
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+      - name: Install Dependencies
+        run: npm ci
+      
+      - name: Run TerraGuard Scan (JSON Output)
+        id: scan
+        # Fails the step if CRITICAL or HIGH findings are detected
+        run: |
+          npm run cli -- scan . --format json --fail-on CRITICAL,HIGH > terraguard-results.json || echo "SCAN_FAILED=true" >> $GITHUB_ENV
+      
+      - name: Upload SARIF to GitHub Code Scanning (Optional but recommended)
+        if: always()
+        run: |
+          npm run cli -- scan . --format sarif > results.sarif || true
+        continue-on-error: true
+
+      - name: Upload Scan Results Artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: terraguard-scan-results
+          path: terraguard-results.json
+
+      - name: Evaluate Policy Gate
+        if: env.SCAN_FAILED == 'true'
+        run: |
+          echo "❌ TerraGuard Policy Evaluation Failed!"
+          echo "CRITICAL or HIGH severity findings were detected."
+          echo "Please review the 'terraguard-scan-results' artifact or run 'npm run cli -- scan . --format text' locally."
+          cat terraguard-results.json | jq '.findings[] | {ruleId, severity, title, resource}'
+          exit 1

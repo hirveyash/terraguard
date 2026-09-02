@@ -123,7 +123,7 @@ export default function Home() {
         <div className="flex-1 min-h-[400px] lg:min-h-0">
           <h2 className="text-lg font-semibold text-gray-300 mb-2">Security Findings</h2>
           <div className="h-[calc(100%-2rem)]">
-            <ResultsDashboard result={scanResult} />
+            <ResultsDashboard result={scanResult} sourceCode={code} />
           </div>
         </div>
       </div>

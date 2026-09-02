@@ -20,6 +20,7 @@ export interface ScanResult {
   findings: Finding[];
   riskScore: number;
   totalRulesChecked: number;
+  resourcesScanned: number; // NEW
 }
 
 export type ScanOutput = ScanResult | { error: string };
