@@ -1,48 +1,45 @@
 // src/components/CodeViewer.tsx
 "use client";
 
-import { getCodeContext } from "@/lib/ui/helpers";
+import { FileCode } from "lucide-react";
 
 interface CodeViewerProps {
-  source: string;
-  targetLine: number;
-  fileName?: string;
+  code: string;
+  highlightLine?: number;
+  fileName: string;
 }
 
-export default function CodeViewer({ source, targetLine, fileName = "main.tf" }: CodeViewerProps) {
-  const { lines } = getCodeContext(source, targetLine, 5);
+export default function CodeViewer({ code, highlightLine, fileName }: CodeViewerProps) {
+  const lines = code.split("\n");
 
   return (
-    <div className="rounded-lg border border-gray-700 bg-gray-950 overflow-hidden">
-      <div className="px-3 py-2 bg-gray-900 border-b border-gray-700 flex items-center justify-between">
-        <span className="text-xs text-gray-400 font-mono">{fileName}</span>
-        <span className="text-xs text-gray-500">Line {targetLine} highlighted</span>
+    <div className="bg-gray-900 border border-gray-700 rounded-lg overflow-hidden">
+      <div className="flex items-center gap-2 px-4 py-2 bg-gray-800/50 border-b border-gray-700">
+        <FileCode className="h-4 w-4 text-blue-400" />
+        <span className="text-sm font-mono text-gray-300">{fileName}</span>
       </div>
-      <pre className="text-xs font-mono overflow-x-auto" role="region" aria-label="Terraform source code">
-        <code>
-          {lines.map(({ number, content }) => {
-            const isTarget = number === targetLine;
+      <div className="p-4 overflow-x-auto">
+        <pre className="text-sm font-mono leading-relaxed">
+          {lines.map((line, index) => {
+            const lineNumber = index + 1;
+            const isHighlighted = highlightLine === lineNumber;
+            
             return (
               <div
-                key={number}
-                className={`flex ${isTarget ? 'bg-yellow-900/40 border-l-2 border-yellow-400' : 'border-l-2 border-transparent'}`}
+                key={index}
+                className={`flex ${isHighlighted ? "bg-yellow-900/30 -mx-4 px-4" : ""}`}
               >
-                <span
-                  className={`inline-block w-12 text-right pr-3 select-none ${
-                    isTarget ? 'text-yellow-300 font-bold' : 'text-gray-600'
-                  }`}
-                  aria-hidden="true"
-                >
-                  {number}
+                <span className={`select-none w-12 text-right pr-4 ${isHighlighted ? "text-yellow-400" : "text-gray-600"}`}>
+                  {lineNumber}
                 </span>
-                <span className={`flex-1 pl-2 pr-3 ${isTarget ? 'text-yellow-100' : 'text-gray-300'}`}>
-                  {content || ' '}
+                <span className={`${isHighlighted ? "text-yellow-100" : "text-gray-300"}`}>
+                  {line}
                 </span>
               </div>
             );
           })}
-        </code>
-      </pre>
+        </pre>
+      </div>
     </div>
   );
 }
