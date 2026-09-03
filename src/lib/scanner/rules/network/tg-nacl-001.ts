@@ -1,4 +1,5 @@
 import { Rule } from '../types';
+import { RULE_MAPPINGS } from '../../frameworks/mappings';
 import { ParsedResource } from '../../parser/hcl-parser';
 
 export const tgNacl001: Rule = {
@@ -7,9 +8,14 @@ export const tgNacl001: Rule = {
   title: 'Network ACL allows all inbound traffic',
   description: 'A Network ACL rule allows all inbound traffic (protocol -1, cidr 0.0.0.0/0, action allow).',
   risk: 'Network ACLs are stateless. Allowing all inbound traffic exposes the subnet to unrestricted network access.',
-  remediation: 'Restrict the cidr_block, protocol, and port_range to only necessary traffic.',
+  remediation: {
+    explanation: 'Restrict the cidr_block, protocol, and port_range to only necessary traffic.',
+    impact: 'This misconfiguration poses a security risk.',
+    remediation: 'Restrict the cidr_block, protocol, and port_range to only necessary traffic.',
+    secureExample: '# Add secure configuration here'
+  },
   references: ['https://docs.aws.amazon.com/vpc/latest/userguide/vpc-network-acls.html'],
-  frameworks: { 'CIS AWS Foundations Benchmark': '5.2' },
+  frameworks: RULE_MAPPINGS['TG-NACL-001'] || [],
   resourceType: 'aws_network_acl_rule',
   check: (resource: ParsedResource) => {
     if (resource.type !== 'aws_network_acl_rule') return false;

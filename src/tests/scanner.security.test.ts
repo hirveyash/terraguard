@@ -15,7 +15,7 @@ describe('Phase 1 Security Controls', () => {
   });
 
   it('should reject non-string input types safely', () => {
-    // @ts-expect-error Testing runtime type safety
+    //  Testing runtime type safety
     const result = scanTerraformCode(null);
     
     expect('error' in result).toBe(true);

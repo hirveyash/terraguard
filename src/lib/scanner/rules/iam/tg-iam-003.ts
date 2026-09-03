@@ -1,4 +1,5 @@
 import { Rule } from '../types';
+import { RULE_MAPPINGS } from '../../frameworks/mappings';
 import { ParsedResource } from '../../parser/hcl-parser';
 
 export const tgIam003: Rule = {
@@ -7,9 +8,14 @@ export const tgIam003: Rule = {
   title: 'Unrestricted iam:PassRole',
   description: 'An IAM policy allows iam:PassRole on all resources ("*").',
   risk: 'Enables privilege escalation. An attacker can pass a highly privileged role to an EC2 instance or Lambda function they control.',
-  remediation: 'Restrict the Resource attribute to specific role ARNs that are required for the task.',
+  remediation: {
+    explanation: 'Restrict the Resource attribute to specific role ARNs that are required for the task.',
+    impact: 'This misconfiguration poses a security risk.',
+    remediation: 'Restrict the Resource attribute to specific role ARNs that are required for the task.',
+    secureExample: '# Add secure configuration here'
+  },
   references: ['https://bishopfox.com/blog/privilege-escalation-in-aws'],
-  frameworks: { 'CIS AWS Foundations Benchmark': '1.16', 'NIST 800-53': 'AC-6' },
+  frameworks: RULE_MAPPINGS['TG-IAM-003'] || [],
   resourceType: 'aws_iam_policy',
   check: (resource: ParsedResource) => {
     if (!['aws_iam_policy', 'aws_iam_role_policy', 'aws_iam_user_policy'].includes(resource.type)) return false;

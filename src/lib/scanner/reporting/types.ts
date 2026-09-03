@@ -14,6 +14,7 @@ export interface Finding {
   risk: string;
   remediation: RuleRemediation;
   frameworks: FrameworkMappings;
+  references?: string[];
 }
 
 export interface ScanResult {

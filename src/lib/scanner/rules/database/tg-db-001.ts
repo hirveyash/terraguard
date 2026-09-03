@@ -1,4 +1,5 @@
 import { Rule } from '../types';
+import { RULE_MAPPINGS } from '../../frameworks/mappings';
 import { ParsedResource } from '../../parser/hcl-parser';
 
 export const tgDb001: Rule = {
@@ -7,9 +8,14 @@ export const tgDb001: Rule = {
   title: 'RDS instance publicly accessible',
   description: 'An RDS database instance is configured with publicly_accessible = true.',
   risk: 'Database is accessible from the public internet, increasing attack surface.',
-  remediation: 'Set publicly_accessible = false to ensure the database is only accessible from within the VPC.',
+  remediation: {
+    explanation: 'Set publicly_accessible = false to ensure the database is only accessible from within the VPC.',
+    impact: 'This misconfiguration poses a security risk.',
+    remediation: 'Set publicly_accessible = false to ensure the database is only accessible from within the VPC.',
+    secureExample: '# Add secure configuration here'
+  },
   references: ['https://cisecurity.org/benchmark/amazon_web_services'],
-  frameworks: { 'CIS AWS Foundations Benchmark': '2.3.1' },
+  frameworks: RULE_MAPPINGS['TG-DB-001'] || [],
   resourceType: 'aws_db_instance',
   check: (resource: ParsedResource) => {
     if (resource.type !== 'aws_db_instance') return false;

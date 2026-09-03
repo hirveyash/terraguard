@@ -1,5 +1,6 @@
 import { Rule } from '../types';
 import { ParsedResource } from '../../parser/hcl-parser';
+import { RULE_MAPPINGS } from '../../frameworks/mappings';
 
 export const tgEc2001: Rule = {
   id: 'TG-EC2-001',
@@ -7,9 +8,19 @@ export const tgEc2001: Rule = {
   title: 'EC2 Instance Metadata Service (IMDS) v1 Allowed',
   description: 'An EC2 instance or launch template allows IMDSv1 (http_tokens is not set to "required").',
   risk: 'IMDSv1 is vulnerable to SSRF attacks, allowing attackers to steal IAM credentials.',
-  remediation: 'Set http_tokens = "required" in the metadata_options block.',
+  remediation: {
+    explanation: 'An EC2 instance or launch template allows IMDSv1 (http_tokens is not set to "required").',
+    impact: 'IMDSv1 is vulnerable to SSRF attacks, allowing attackers to steal IAM credentials.',
+    remediation: 'Set http_tokens = "required" in the metadata_options block.',
+    secureExample: `resource "aws_instance" "secure" {
+  # ... other configuration ...
+  metadata_options {
+    http_tokens = "required"
+  }
+}`
+  },
   references: ['https://cisecurity.org/benchmark/amazon_web_services'],
-  frameworks: { 'CIS AWS Foundations Benchmark': '4.1' },
+  frameworks: RULE_MAPPINGS['TG-EC2-001'] || [],
   resourceType: 'aws_instance',
   check: (resource: ParsedResource) => {
     if (!['aws_instance', 'aws_launch_template', 'aws_launch_configuration'].includes(resource.type)) return false;

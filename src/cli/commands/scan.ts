@@ -68,7 +68,7 @@ export function runScan(args: ScanCommandArgs): { exitCode: number; output: stri
         output = formatText(aggregated);
     }
 
-    let exitCode = EXIT_CODES.SUCCESS;
+    let exitCode: number = EXIT_CODES.SUCCESS;
     if (aggregated.findings.length > 0) {
       if (args.failOn && args.failOn.length > 0) {
         const hasBlockingFinding = aggregated.findings.some(f => args.failOn!.includes(f.severity as Severity));

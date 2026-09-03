@@ -1,4 +1,5 @@
 import { Rule } from '../types';
+import { RULE_MAPPINGS } from '../../frameworks/mappings';
 import { ParsedResource } from '../../parser/hcl-parser';
 
 export const tgIam001: Rule = {
@@ -7,9 +8,14 @@ export const tgIam001: Rule = {
   title: 'Wildcard IAM permissions',
   description: 'An IAM policy grants Action: "*" on Resource: "*". This violates the principle of least privilege.',
   risk: 'Attackers who compromise this policy gain full administrative access to all AWS resources.',
-  remediation: 'Restrict the Action to only the specific API calls required, and limit the Resource to specific ARNs.',
+  remediation: {
+    explanation: 'Restrict the Action to only the specific API calls required, and limit the Resource to specific ARNs.',
+    impact: 'This misconfiguration poses a security risk.',
+    remediation: 'Restrict the Action to only the specific API calls required, and limit the Resource to specific ARNs.',
+    secureExample: '# Add secure configuration here'
+  },
   references: ['https://docs.aws.amazon.com/IAM/latest/UserGuide/best-practices.html'],
-  frameworks: { 'CIS AWS Foundations Benchmark': '1.16', 'NIST 800-53': 'AC-6' },
+  frameworks: RULE_MAPPINGS['TG-IAM-001'] || [],
   resourceType: 'aws_iam_policy',
   check: (resource: ParsedResource) => {
     if (!['aws_iam_policy', 'aws_iam_role_policy', 'aws_iam_user_policy'].includes(resource.type)) return false;

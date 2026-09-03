@@ -172,37 +172,37 @@ describe('Security: Input Validation & Injection', () => {
 
   describe('Unexpected Data Types', () => {
     it('should handle null input', () => {
-      // @ts-expect-error Testing runtime type safety
+      //  Testing runtime type safety
       const result = scanTerraformCode(null);
       expect('error' in result).toBe(true);
     });
 
     it('should handle undefined input', () => {
-      // @ts-expect-error Testing runtime type safety
+      //  Testing runtime type safety
       const result = scanTerraformCode(undefined);
       expect('error' in result).toBe(true);
     });
 
     it('should handle number input', () => {
-      // @ts-expect-error Testing runtime type safety
+      //  Testing runtime type safety
       const result = scanTerraformCode(12345);
       expect('error' in result).toBe(true);
     });
 
     it('should handle object input', () => {
-      // @ts-expect-error Testing runtime type safety
+      //  Testing runtime type safety
       const result = scanTerraformCode({ bucket: 'test' });
       expect('error' in result).toBe(true);
     });
 
     it('should handle array input', () => {
-      // @ts-expect-error Testing runtime type safety
+      //  Testing runtime type safety
       const result = scanTerraformCode(['resource', 'aws_s3_bucket']);
       expect('error' in result).toBe(true);
     });
 
     it('should handle boolean input', () => {
-      // @ts-expect-error Testing runtime type safety
+      //  Testing runtime type safety
       const result = scanTerraformCode(true);
       expect('error' in result).toBe(true);
     });

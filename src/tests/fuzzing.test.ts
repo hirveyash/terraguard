@@ -293,7 +293,7 @@ describe('Fuzzing: Hostile & Unusual Input', () => {
 
       for (const input of maliciousInputs) {
         expect(() => {
-          // @ts-expect-error Testing runtime safety
+          //  Testing runtime safety
           scanTerraformCode(input);
         }).not.toThrow();
       }
