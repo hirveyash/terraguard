@@ -1,132 +1,177 @@
+// src/app/page.tsx
 "use client";
 
 import { useState } from "react";
-import CodeEditor from "@/components/CodeEditor";
+import { scanTerraformCode, ScanOutput } from "@/lib/scanner";
+import Editor from "@/components/MonacoEditor";
 import ResultsDashboard from "@/components/ResultsDashboard";
-import { scanTerraformCode, type ScanResult, type ScanOutput } from "@/lib/scanner/index";import { Search, Code, AlertCircle } from "lucide-react";
-import { MAX_INPUT_SIZE_BYTES } from "@/lib/security";
+import { Shield, AlertTriangle } from "lucide-react";
 
-const defaultCode = `# Example Terraform Configuration
-# Try modifying this code and clicking "Scan"
+const DEFAULT_CODE = `# Terraform Infrastructure as Code
+# Paste your Terraform configuration here
 
-resource "aws_security_group" "web_server" {
-  name        = "allow_ssh"
-  description = "Allow SSH inbound traffic"
-
-  ingress {
-    from_port   = 22
-    to_port     = 22
-    protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"] # VULNERABILITY: Open to the world!
+resource "aws_s3_bucket" "example" {
+  bucket = "my-example-bucket"
+  acl    = "private"
+  
+  tags = {
+    Name        = "Example bucket"
+    Environment = "Dev"
   }
 }
 
-resource "aws_s3_bucket" "sensitive_data" {
-  bucket = "my-company-secrets"
-  acl    = "public-read" # VULNERABILITY: Public access!
+resource "aws_security_group" "web" {
+  name        = "web-security-group"
+  description = "Allow HTTPS traffic"
+
+  ingress {
+    from_port   = 443
+    to_port     = 443
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  egress {
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
 }
 `;
 
 export default function Home() {
-  const [code, setCode] = useState(defaultCode);
-  const [scanResult, setScanResult] = useState<ScanResult | null>(null);
+  const [code, setCode] = useState(DEFAULT_CODE);
+  const [scanResult, setScanResult] = useState<ScanOutput | null>(null);
   const [isScanning, setIsScanning] = useState(false);
-  const [scanError, setScanError] = useState<string | null>(null);
-
-  const handleCodeChange = (value: string) => {
-    if (value.length <= MAX_INPUT_SIZE_BYTES) {
-      setCode(value);
-      setScanError(null);
-    } else {
-      setScanError(`Code size exceeds maximum allowed limit of ${MAX_INPUT_SIZE_BYTES / 1024}KB.`);
-    }
-  };
 
   const handleScan = () => {
     setIsScanning(true);
-    setScanError(null);
-    
+    // Small delay to allow UI to update
     setTimeout(() => {
-      try {
-        const output = scanTerraformCode(code) as ScanOutput;
-        
-        if ('error' in output) {
-          setScanError(output.error);
-          setScanResult(null);
-        } else {
-          setScanResult(output);
-          setScanError(null);
-        }
-      } catch (err) {
-        setScanError('An unexpected error occurred during scanning.');
-        setScanResult(null);
-      } finally {
-        setIsScanning(false);
-      }
-    }, 50);
+      const result = scanTerraformCode(code, 'main.tf');
+      setScanResult(result);
+      setIsScanning(false);
+    }, 100);
   };
 
   return (
-    <main className="min-h-screen bg-gray-950 text-gray-100 flex flex-col">
-      {/* Top Navigation Bar */}
-      <header className="border-b border-gray-800 p-4 flex justify-between items-center bg-gray-900/80 backdrop-blur">
-        <div className="flex items-center gap-3">
-          <div className="bg-blue-600 p-2 rounded-lg">
-            <Search size={20} className="text-white" />
+    <div className="min-h-screen bg-gray-950 text-gray-100">
+      {/* Header */}
+      <header className="border-b border-gray-800 bg-gray-900/50 backdrop-blur-sm sticky top-0 z-10">
+        <div className="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="bg-blue-600 p-2 rounded-lg">
+              <Shield size={24} className="text-white" />
+            </div>
+            <div>
+              <h1 className="text-xl font-bold text-white">TerraGuard</h1>
+              <p className="text-xs text-blue-400">IaC Scanner</p>
+            </div>
           </div>
-          <h1 className="text-xl font-bold tracking-tight">
-            TerraGuard <span className="text-blue-400 text-sm font-normal">IaC Scanner</span>
-          </h1>
+          <a
+            href="https://github.com/hirveyash/terraguard"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-sm text-gray-400 hover:text-white transition-colors flex items-center gap-1"
+          >
+            <span>&lt;&gt;</span> View Source
+          </a>
         </div>
-        <a 
-          href="https://github.com/hirveyash/terraguard" 
-          target="_blank" 
-          rel="noopener noreferrer"
-          className="flex items-center gap-2 text-sm text-gray-400 hover:text-white transition-colors"
-        >
-          <Code size={18} /> View Source
-        </a>
       </header>
 
-      {/* Main Workspace */}
-      <div className="flex-1 flex flex-col lg:flex-row gap-4 p-4 overflow-hidden">
-        {/* Left Side: Editor & Controls */}
-        <div className="flex-1 flex flex-col gap-4 min-h-[400px] lg:min-h-0">
-          <div className="flex justify-between items-center">
-            <h2 className="text-lg font-semibold text-gray-300">Infrastructure Code (Terraform)</h2>
-            <button
-              onClick={handleScan}
-              disabled={isScanning || !!scanError}
-              className={`font-semibold py-2 px-6 rounded-lg shadow-lg transition-all flex items-center gap-2 ${
-                isScanning || !!scanError 
-                  ? 'bg-gray-700 text-gray-400 cursor-not-allowed' 
-                  : 'bg-blue-600 hover:bg-blue-700 text-white shadow-blue-600/20'
-              }`}
-            >
-              <Search size={18} /> {isScanning ? 'Scanning...' : 'Run Security Scan'}
-            </button>
-          </div>
-          
-          {scanError && (
-            <div className="p-3 bg-red-900/30 border border-red-700 rounded-lg flex items-center gap-2 text-red-300 text-sm">
-              <AlertCircle size={16} />
-              {scanError}
+      {/* Main Content */}
+      <main className="max-w-7xl mx-auto px-4 py-6">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 h-[calc(100vh-140px)]">
+          {/* Code Editor Panel */}
+          <div className="flex flex-col">
+            <div className="flex items-center justify-between mb-3">
+              <h2 className="text-lg font-semibold text-gray-200">
+                Infrastructure Code (Terraform)
+              </h2>
+              <button
+                onClick={handleScan}
+                disabled={isScanning}
+                className="px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-800 disabled:cursor-not-allowed text-white rounded-lg font-medium flex items-center gap-2 transition-colors"
+              >
+                {isScanning ? (
+                  <>
+                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                    Scanning...
+                  </>
+                ) : (
+                  <>
+                    <Shield size={16} />
+                    Run Security Scan
+                  </>
+                )}
+              </button>
             </div>
-          )}
+            <div className="flex-1 border border-gray-700 rounded-lg overflow-hidden bg-gray-900">
+              <Editor
+                height="100%"
+                language="hcl"
+                value={code}
+                onChange={(value) => setCode(value || '')}
+                theme="vs-dark"
+                options={{
+                  minimap: { enabled: false },
+                  fontSize: 14,
+                  wordWrap: 'on',
+                  automaticLayout: true,
+                }}
+              />
+            </div>
+          </div>
 
-          <div className="flex-1">
-            <CodeEditor value={code} onChange={handleCodeChange} />
+          {/* Results Panel */}
+          <div className="flex flex-col">
+            <div className="flex items-center justify-between mb-3">
+              <h2 className="text-lg font-semibold text-gray-200">
+                Security Findings
+              </h2>
+              {scanResult && !('error' in scanResult) && (
+                <div className="flex items-center gap-2 text-sm">
+                  <span className="text-gray-400">
+                    {scanResult.findings.length} findings
+                  </span>
+                  <span className="text-gray-600">•</span>
+                  <span className="text-gray-400">
+                    Score: {scanResult.riskScore}/100
+                  </span>
+                </div>
+              )}
+            </div>
+            <div className="flex-1 border border-gray-700 rounded-lg overflow-hidden bg-gray-900">
+              {isScanning ? (
+                <div className="h-full flex items-center justify-center text-gray-400">
+                  <div className="text-center">
+                    <div className="w-8 h-8 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto mb-3" />
+                    <p className="text-sm">Scanning...</p>
+                  </div>
+                </div>
+              ) : !scanResult ? (
+                <div className="h-full flex items-center justify-center text-gray-500">
+                  <div className="text-center">
+                    <Shield size={48} className="mx-auto mb-3 opacity-30" />
+                    <p className="text-sm">Run a scan to see security findings...</p>
+                  </div>
+                </div>
+              ) : 'error' in scanResult ? (
+                <div className="h-full flex items-center justify-center text-red-400">
+                  <div className="text-center max-w-md p-6">
+                    <AlertTriangle size={48} className="mx-auto mb-3 opacity-50" />
+                    <p className="text-sm font-semibold mb-2">Scan Error</p>
+                    <p className="text-xs text-gray-400">{scanResult.error}</p>
+                  </div>
+                </div>
+              ) : (
+                <ResultsDashboard result={scanResult} sourceCode={code} />
+              )}
+            </div>
           </div>
         </div>
-
-        {/* Right Side: Dashboard */}
-        <div className="flex-1 min-h-[400px] lg:min-h-0">
-          <h2 className="text-lg font-semibold text-gray-300 mb-2">Security Findings</h2>
-          <div className="h-[calc(100%-2rem)]">
-            <ResultsDashboard result={scanResult} sourceCode={code} />
-          </div>
-        </div>
-      </div>
-    </main>
+      </main>
+    </div>
   );
 }
