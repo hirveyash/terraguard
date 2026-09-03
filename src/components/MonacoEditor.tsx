@@ -11,7 +11,9 @@ const MonacoEditor = dynamic(() => import('@monaco-editor/react'), {
   loading: () => null, // We handle loading state manually
 });
 
-interface MonacoEditorProps extends EditorProps {
+// Omit the strict onChange from base props and redefine it to accept a single string
+interface MonacoEditorProps extends Omit<EditorProps, 'onChange'> {
+  onChange?: (value: string) => void;
   onError?: (error: Error) => void;
 }
 
@@ -26,7 +28,9 @@ export default function Editor(props: MonacoEditorProps) {
       if (!isLoaded) {
         console.warn('Monaco Editor load timeout. Switching to fallback textarea.');
         setHasError(true);
-        props.onError?.(new Error('Monaco Editor load timeout'));
+        if (props.onError) {
+          props.onError(new Error('Monaco Editor load timeout'));
+        }
       }
     }, 8000);
 
@@ -44,7 +48,9 @@ export default function Editor(props: MonacoEditorProps) {
         value={fallbackValue}
         onChange={(e) => {
           setFallbackValue(e.target.value);
-          props.onChange?.(e.target.value);
+          if (props.onChange) {
+            props.onChange(e.target.value);
+          }
         }}
         className="w-full h-full p-4 bg-gray-900 text-gray-100 font-mono text-sm resize-none focus:outline-none focus:ring-2 focus:ring-blue-600"
         placeholder="# Paste your Terraform code here..."
@@ -65,7 +71,7 @@ export default function Editor(props: MonacoEditorProps) {
         </div>
       )}
       <MonacoEditor
-        {...props}
+        {...(props as EditorProps)}
         onMount={handleEditorMount}
         options={{
           ...props.options,
