@@ -49,8 +49,12 @@ export default function Home() {
     setIsScanning(true);
     // Small delay to allow UI to update
     setTimeout(() => {
-      const result = scanTerraformCode(code, 'main.tf');
-      setScanResult(result);
+      try {
+        const result = scanTerraformCode(code, 'main.tf');
+        setScanResult(result);
+      } catch (error) {
+        console.error('Scan failed:', error);
+      }
       setIsScanning(false);
     }, 100);
   };
@@ -107,7 +111,7 @@ export default function Home() {
                 )}
               </button>
             </div>
-            <div className="flex-1 border border-gray-700 rounded-lg overflow-hidden bg-gray-900">
+            <div className="flex-1 border border-gray-700 rounded-lg overflow-hidden bg-gray-900 relative">
               <Editor
                 height="100%"
                 language="hcl"
@@ -118,7 +122,6 @@ export default function Home() {
                   minimap: { enabled: false },
                   fontSize: 14,
                   wordWrap: 'on',
-                  automaticLayout: true,
                 }}
               />
             </div>
