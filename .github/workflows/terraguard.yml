@@ -1,0 +1,31 @@
+name: TerraGuard Security Scan
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  scan:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      
+      - name: Install TerraGuard
+        run: npm install
+      
+      - name: Run TerraGuard Scan
+        run: |
+          npm run cli -- scan . --format sarif --fail-on CRITICAL,HIGH > results.sarif || true
+      
+      - name: Upload SARIF
+        uses: github/codeql-action/upload-sarif@v3
+        if: always()
+        with:
+          sarif_file: results.sarif

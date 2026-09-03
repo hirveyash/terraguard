@@ -1,0 +1,315 @@
+﻿{
+  "$schema": "https://raw.githubusercontent.com/hirveyash/terraguard/main/schemas/terraguard-report.schema.json",
+  "version": "1.0.0",
+  "scanner": {
+    "name": "TerraGuard",
+    "version": "0.1.0",
+    "homepage": "https://github.com/hirveyash/terraguard"
+  },
+  "scan": {
+    "scannedAt": "2026-09-03T05:07:28.628Z",
+    "durationMs": 9,
+    "targetPath": ".\\benchmarks\\corpus",
+    "workingDirectory": "C:\\Users\\hirve\\Documents\\CloudSecurityP\\terraguard",
+    "arguments": [
+      "scan",
+      ".\\benchmarks\\corpus",
+      "--format",
+      "json"
+    ]
+  },
+  "summary": {
+    "filesScanned": 4,
+    "resourcesScanned": 4,
+    "totalRulesChecked": 22,
+    "riskScore": 0,
+    "findingsCount": 8,
+    "findingsBySeverity": {
+      "CRITICAL": 2,
+      "HIGH": 5,
+      "MEDIUM": 1,
+      "LOW": 0,
+      "INFO": 0
+    }
+  },
+  "findings": [
+    {
+      "ruleId": "TG-EBS-001",
+      "severity": "HIGH",
+      "title": "EBS volume not encrypted at rest",
+      "resource": "aws_ebs_volume.data",
+      "resourceType": "aws_ebs_volume",
+      "file": "benchmarks\\corpus\\ebs_unencrypted.tf",
+      "line": 1,
+      "description": "An EBS volume is created without encryption enabled.",
+      "risk": "Data at rest is not protected. Physical access to storage media could lead to data exposure.",
+      "remediation": {
+        "explanation": "The EBS volume is created without the \"encrypted = true\" attribute. Data stored on this volume is not encrypted at rest.",
+        "impact": "If the underlying storage media is compromised (e.g., through physical access, snapshot sharing, or AWS infrastructure incidents), data can be read without decryption keys.",
+        "remediation": "Add \"encrypted = true\" to the EBS volume resource. Optionally specify a KMS key ID for customer-managed encryption.",
+        "secureExample": "resource \"aws_ebs_volume\" \"secure\" {\n  availability_zone = \"us-east-1a\"\n  size              = 100\n  encrypted         = true\n  # kms_key_id     = \"arn:aws:kms:...\"  # Optional: customer-managed key\n}",
+        "autoFix": {
+          "description": "Add missing \"encrypted = true\" attribute",
+          "diff": "  # Add the following line inside the resource block:\n+ encrypted = true",
+          "assumptions": [
+            "The attribute \"encrypted\" should be set to true for EBS volume encryption at rest",
+            "This fix does not modify any existing attributes",
+            "You should verify this value matches your organization's security policy"
+          ],
+          "requiresConfirmation": true
+        }
+      },
+      "frameworks": [
+        {
+          "framework": "CIS AWS Foundations Benchmark",
+          "version": "1.5.0",
+          "control": "2.2.1",
+          "reason": "Unencrypted EBS volumes violate CIS 2.2.1 which requires EBS volume encryption to be enabled to protect data at rest."
+        },
+        {
+          "framework": "NIST SP 800-53",
+          "version": "Rev. 5",
+          "control": "SC-13",
+          "reason": "Cryptographic Protection control requires encryption of data at rest; unencrypted EBS volumes violate this requirement."
+        }
+      ],
+      "references": []
+    },
+    {
+      "ruleId": "TG-NET-001",
+      "severity": "HIGH",
+      "title": "Unrestricted SSH access (Port 22 open to the world)",
+      "resource": "aws_security_group.web",
+      "resourceType": "aws_security_group",
+      "file": "benchmarks\\corpus\\ec2_ssh_open.tf",
+      "line": 1,
+      "description": "A Security Group allows inbound SSH traffic (port 22) from any IP address (0.0.0.0/0).",
+      "risk": "Exposes servers to brute-force attacks from the public internet.",
+      "remediation": {
+        "explanation": "The security group ingress rule allows SSH (port 22) traffic from any IP address on the internet (0.0.0.0/0). This means anyone, anywhere can attempt to connect to your servers via SSH.",
+        "impact": "Attackers can perform brute-force password attacks, exploit SSH vulnerabilities, or attempt to gain unauthorized access to your servers. This is one of the most common attack vectors in cloud environments.",
+        "remediation": "Restrict the cidr_blocks for port 22 to your specific corporate IP address, VPN CIDR range, or a trusted bastion host IP. Never use 0.0.0.0/0 for administrative ports.",
+        "secureExample": "resource \"aws_security_group\" \"ssh_access\" {\n  name        = \"allow_ssh\"\n  description = \"Allow SSH inbound from corporate network only\"\n\n  ingress {\n    from_port   = 22\n    to_port     = 22\n    protocol    = \"tcp\"\n    cidr_blocks = [\"203.0.113.0/24\"]  # Replace with your corporate CIDR\n  }\n}",
+        "autoFix": {
+          "description": "Replace public CIDR \"0.0.0.0/0\" with a restricted range",
+          "diff": "- cidr_blocks = [\"0.0.0.0/0\"]\n+ cidr_blocks = [\"<YOUR_CORPORATE_CIDR>\"]",
+          "assumptions": [
+            "The current CIDR \"0.0.0.0/0\" is overly permissive for SSH access (port 22)",
+            "<YOUR_CORPORATE_CIDR> is a placeholder - you must replace it with your actual corporate IP or VPC CIDR",
+            "This fix assumes you have a known, trusted IP range to restrict access to"
+          ],
+          "requiresConfirmation": true
+        }
+      },
+      "frameworks": [
+        {
+          "framework": "CIS AWS Foundations Benchmark",
+          "version": "1.5.0",
+          "control": "5.2",
+          "reason": "Unrestricted SSH access (port 22 to 0.0.0.0/0) directly violates CIS 5.2 which prohibits security groups from allowing ingress from 0.0.0.0/0 to remote server administration ports."
+        },
+        {
+          "framework": "MITRE ATT&CK",
+          "version": "v14",
+          "control": "T1190",
+          "reason": "Exploit Public-Facing Application - Exposed SSH ports enable brute-force attacks and exploitation of public-facing services."
+        }
+      ],
+      "references": []
+    },
+    {
+      "ruleId": "TG-S3-001",
+      "severity": "CRITICAL",
+      "title": "S3 bucket configured for public read access",
+      "resource": "aws_s3_bucket.public_data",
+      "resourceType": "aws_s3_bucket",
+      "file": "benchmarks\\corpus\\s3_public.tf",
+      "line": 1,
+      "description": "An S3 bucket is configured with acl = \"public-read\" or \"public-read-write\".",
+      "risk": "Anyone on the internet can read the contents of the bucket, potentially leading to data leaks.",
+      "remediation": {
+        "explanation": "The S3 bucket has an ACL set to \"public-read\" or \"public-read-write\", granting read (and possibly write) access to anyone on the internet.",
+        "impact": "Data stored in the bucket is publicly accessible. This can lead to data breaches, regulatory fines (GDPR, HIPAA), reputational damage, and potential legal liability.",
+        "remediation": "Remove the acl attribute entirely. Use aws_s3_bucket_public_access_block to explicitly block public access. If public access is required, use a bucket policy with strict conditions instead.",
+        "secureExample": "resource \"aws_s3_bucket\" \"secure_bucket\" {\n  bucket = \"my-secure-bucket\"\n  # No acl attribute - defaults to private\n}\n\nresource \"aws_s3_bucket_public_access_block\" \"secure_bucket\" {\n  bucket = aws_s3_bucket.secure_bucket.id\n\n  block_public_acls       = true\n  block_public_policy     = true\n  ignore_public_acls      = true\n  restrict_public_buckets = true\n}",
+        "autoFix": {
+          "description": "Remove insecure ACL attribute",
+          "diff": "- acl = \"public-read\"\n+ # acl attribute removed - use aws_s3_bucket_public_access_block instead",
+          "assumptions": [
+            "The current ACL grants public access which is insecure for S3 bucket data protection",
+            "Public access should be controlled via aws_s3_bucket_public_access_block",
+            "You should verify your application does not require public read access before removing"
+          ],
+          "requiresConfirmation": true
+        }
+      },
+      "frameworks": [
+        {
+          "framework": "CIS AWS Foundations Benchmark",
+          "version": "1.5.0",
+          "control": "2.1.1",
+          "reason": "Public-read ACLs on S3 buckets directly violate CIS 2.1.1 which requires S3 bucket policies to be secure and not grant public access."
+        },
+        {
+          "framework": "MITRE ATT&CK",
+          "version": "v14",
+          "control": "T1530",
+          "reason": "Data from Cloud Storage Object - Public S3 buckets enable attackers to exfiltrate data directly from cloud storage."
+        }
+      ],
+      "references": []
+    },
+    {
+      "ruleId": "TG-S3-003",
+      "severity": "HIGH",
+      "title": "S3 bucket missing server-side encryption",
+      "resource": "aws_s3_bucket.public_data",
+      "resourceType": "aws_s3_bucket",
+      "file": "benchmarks\\corpus\\s3_public.tf",
+      "line": 1,
+      "description": "An S3 bucket does not have server_side_encryption_configuration defined.",
+      "risk": "Data stored in the bucket is not encrypted at rest, violating compliance standards.",
+      "remediation": {
+        "explanation": "Add a server_side_encryption_configuration block with AES256 or aws:kms.",
+        "impact": "Add a server_side_encryption_configuration block with AES256 or aws:kms.",
+        "remediation": "Add a server_side_encryption_configuration block with AES256 or aws:kms.",
+        "secureExample": "Add a server_side_encryption_configuration block with AES256 or aws:kms."
+      },
+      "frameworks": [
+        {
+          "framework": "CIS AWS Foundations Benchmark",
+          "control": "2.1.2",
+          "version": "unknown",
+          "reason": ""
+        }
+      ],
+      "references": []
+    },
+    {
+      "ruleId": "TG-RDS-001",
+      "severity": "HIGH",
+      "title": "RDS instance publicly accessible",
+      "resource": "aws_db_instance.main",
+      "resourceType": "aws_db_instance",
+      "file": "benchmarks\\corpus\\secrets.tf",
+      "line": 1,
+      "description": "An RDS database instance is configured with publicly_accessible = true.",
+      "risk": "Database is accessible from the public internet, drastically increasing the attack surface.",
+      "remediation": {
+        "explanation": "Set publicly_accessible = false to ensure the database is only accessible from within the VPC.",
+        "impact": "Set publicly_accessible = false to ensure the database is only accessible from within the VPC.",
+        "remediation": "Set publicly_accessible = false to ensure the database is only accessible from within the VPC.",
+        "secureExample": "Set publicly_accessible = false to ensure the database is only accessible from within the VPC."
+      },
+      "frameworks": [
+        {
+          "framework": "CIS AWS Foundations Benchmark",
+          "control": "2.3.1",
+          "version": "unknown",
+          "reason": ""
+        }
+      ],
+      "references": []
+    },
+    {
+      "ruleId": "TG-RDS-002",
+      "severity": "HIGH",
+      "title": "RDS instance storage not encrypted",
+      "resource": "aws_db_instance.main",
+      "resourceType": "aws_db_instance",
+      "file": "benchmarks\\corpus\\secrets.tf",
+      "line": 1,
+      "description": "An RDS database instance does not have storage encryption enabled.",
+      "risk": "Data at rest in the database is not encrypted, violating compliance standards.",
+      "remediation": {
+        "explanation": "The RDS instance does not have \"storage_encrypted = true\" set. Database data, backups, and logs are stored unencrypted.",
+        "impact": "Database contents are vulnerable if storage media is compromised. This violates compliance requirements (PCI-DSS, HIPAA, SOC 2) and exposes sensitive data.",
+        "remediation": "Add \"storage_encrypted = true\" to the RDS instance. Note: Encryption can only be enabled at creation time - existing instances must be migrated.",
+        "secureExample": "resource \"aws_db_instance\" \"secure\" {\n  identifier           = \"secure-db\"\n  engine               = \"postgres\"\n  instance_class       = \"db.t3.micro\"\n  storage_encrypted    = true\n  # kms_key_id        = \"arn:aws:kms:...\"  # Optional: customer-managed key\n}",
+        "autoFix": {
+          "description": "Add missing \"storage_encrypted = true\" attribute",
+          "diff": "  # Add the following line inside the resource block:\n+ storage_encrypted = true",
+          "assumptions": [
+            "The attribute \"storage_encrypted\" should be set to true for RDS storage encryption",
+            "This fix does not modify any existing attributes",
+            "You should verify this value matches your organization's security policy"
+          ],
+          "requiresConfirmation": true
+        }
+      },
+      "frameworks": [
+        {
+          "framework": "CIS AWS Foundations Benchmark",
+          "version": "1.5.0",
+          "control": "2.3.1",
+          "reason": "Unencrypted RDS storage violates CIS 2.3.1 which requires RDS instances to have encryption enabled."
+        },
+        {
+          "framework": "NIST SP 800-53",
+          "version": "Rev. 5",
+          "control": "SC-13",
+          "reason": "Cryptographic Protection control requires encryption of data at rest; unencrypted RDS storage violates this requirement."
+        }
+      ],
+      "references": []
+    },
+    {
+      "ruleId": "TG-RDS-003",
+      "severity": "MEDIUM",
+      "title": "RDS instance deletion protection disabled",
+      "resource": "aws_db_instance.main",
+      "resourceType": "aws_db_instance",
+      "file": "benchmarks\\corpus\\secrets.tf",
+      "line": 1,
+      "description": "An RDS database instance has deletion_protection set to false or omitted.",
+      "risk": "The database can be accidentally or maliciously deleted, leading to data loss and downtime.",
+      "remediation": {
+        "explanation": "Set deletion_protection = true for production databases.",
+        "impact": "Set deletion_protection = true for production databases.",
+        "remediation": "Set deletion_protection = true for production databases.",
+        "secureExample": "Set deletion_protection = true for production databases."
+      },
+      "frameworks": [
+        {
+          "framework": "CIS AWS Foundations Benchmark",
+          "control": "2.3.4",
+          "version": "unknown",
+          "reason": ""
+        }
+      ],
+      "references": []
+    },
+    {
+      "ruleId": "TG-SEC-001",
+      "severity": "CRITICAL",
+      "title": "Hardcoded secret detected in configuration",
+      "resource": "aws_db_instance.main",
+      "resourceType": "aws_db_instance",
+      "file": "benchmarks\\corpus\\secrets.tf",
+      "line": 1,
+      "description": "A sensitive attribute (e.g., password, secret_key, api_key, token) is assigned a literal string value instead of a variable reference.",
+      "risk": "Hardcoded secrets can be exposed in version control, leading to credential compromise.",
+      "remediation": {
+        "explanation": "A sensitive attribute is assigned a literal string value instead of a variable reference.",
+        "impact": "Hardcoded secrets can be exposed in version control, leading to credential compromise and unauthorized access.",
+        "remediation": "Use Terraform variables (var.name), data sources, or a secrets manager (e.g., AWS Secrets Manager) to inject sensitive values.",
+        "secureExample": "resource \"aws_db_instance\" \"secure\" {\n  # Use a variable instead of a hardcoded string\n  password = var.db_password\n}"
+      },
+      "frameworks": [
+        {
+          "framework": "NIST SP 800-53",
+          "version": "Rev. 5",
+          "control": "IA-5",
+          "reason": "Authenticator Management control requires that secrets be managed securely; hardcoded credentials in IaC violate this."
+        },
+        {
+          "framework": "MITRE ATT&CK",
+          "version": "v14",
+          "control": "T1552.001",
+          "reason": "Unsecured Credentials: Credentials In Files - Hardcoded secrets in Terraform files enable credential theft via source code exposure."
+        }
+      ],
+      "references": []
+    }
+  ]
+}

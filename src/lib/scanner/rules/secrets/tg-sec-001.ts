@@ -1,5 +1,7 @@
+// src/lib/scanner/rules/secrets/tg-sec-001.ts
 import { Rule } from '../types';
 import { ParsedResource } from '../../parser/hcl-parser';
+import { RULE_MAPPINGS } from '../../frameworks/mappings';
 
 export const tgSec001: Rule = {
   id: 'TG-SEC-001',
@@ -7,9 +9,17 @@ export const tgSec001: Rule = {
   title: 'Hardcoded secret detected in configuration',
   description: 'A sensitive attribute (e.g., password, secret_key, api_key, token) is assigned a literal string value instead of a variable reference.',
   risk: 'Hardcoded secrets can be exposed in version control, leading to credential compromise.',
-  remediation: 'Use Terraform variables (var.name), data sources, or a secrets manager (e.g., AWS Secrets Manager) to inject sensitive values.',
+  remediation: {
+    explanation: 'A sensitive attribute is assigned a literal string value instead of a variable reference.',
+    impact: 'Hardcoded secrets can be exposed in version control, leading to credential compromise and unauthorized access.',
+    remediation: 'Use Terraform variables (var.name), data sources, or a secrets manager (e.g., AWS Secrets Manager) to inject sensitive values.',
+    secureExample: `resource "aws_db_instance" "secure" {
+  # Use a variable instead of a hardcoded string
+  password = var.db_password
+}`
+  },
   references: ['https://cheatsheetseries.owasp.org/cheatsheets/Secrets_Management_Cheat_Sheet.html'],
-  frameworks: { 'NIST 800-53': 'IA-5', 'CIS Controls': '3.1' },
+  frameworks: RULE_MAPPINGS['TG-SEC-001'] || [],
   resourceType: 'any',
   check: (resource: ParsedResource) => {
     const sensitiveKeys = ['password', 'secret_key', 'api_key', 'token', 'credentials', 'secret'];
