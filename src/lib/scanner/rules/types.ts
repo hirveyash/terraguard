@@ -1,18 +1,24 @@
 // src/lib/scanner/rules/types.ts
-import { Severity } from '../severity/types';
-import { FrameworkMappings } from '../frameworks/types';
 import { ParsedResource } from '../parser/hcl-parser';
-import { RuleRemediation } from '../remediation/types';
+import { FrameworkMapping } from '../frameworks/mappings';
+
+export interface RuleRemediation {
+  explanation: string;
+  impact: string;
+  remediation: string;
+  secureExample: string;
+  autoFix?: string;
+}
 
 export interface Rule {
   id: string;
-  severity: Severity;
+  severity: 'CRITICAL' | 'HIGH' | 'MEDIUM' | 'LOW' | 'INFO';
   title: string;
   description: string;
   risk: string;
-  remediation: RuleRemediation;  // Changed from string to RuleRemediation
-  references: string[];
-  frameworks: FrameworkMappings;
+  remediation: RuleRemediation | string;
+  references?: string[];
+  frameworks: FrameworkMapping[];
   resourceType: string;
   check: (resource: ParsedResource) => boolean;
 }
